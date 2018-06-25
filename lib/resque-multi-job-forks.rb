@@ -49,7 +49,7 @@ module Resque
         working_on_without_worker_registration(job)
       end
       alias_method :working_on_without_worker_registration, :working_on
-      alias_method :working_on, :working_on_with_worker_registration    
+      alias_method :working_on, :working_on_with_worker_registration
 
       # Reconnect only once
       def reconnect_with_multi_job_forks
@@ -86,7 +86,11 @@ module Resque
       Resque.after_fork = Resque.before_fork = nil
       @release_fork_limit = fork_job_limit
       @jobs_processed = 0
+
+      # Resque <1.27 uses @cant_fork to suppress forking. 1.27+ uses @fork_per_job.
       @cant_fork = true
+      @fork_per_job = false
+
       trap('TSTP') { shutdown }
     end
 
@@ -94,7 +98,7 @@ module Resque
       log "jobs processed by child: #{jobs_processed}; rss: #{rss}"
       run_hook :before_child_exit, self
       Resque.after_fork, Resque.before_fork = *@suppressed_fork_hooks
-      @release_fork_limit = @jobs_processed = @cant_fork = nil
+      @release_fork_limit = @jobs_processed = @cant_fork = @fork_per_job = nil
       log 'hijack over, counter terrorists win.'
       @shutdown = true unless $TESTING
     end
